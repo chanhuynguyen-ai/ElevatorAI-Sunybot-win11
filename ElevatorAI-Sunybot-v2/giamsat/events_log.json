@@ -1,0 +1,97 @@
+[
+  {
+    "event_type": "OCCUPANCY_SAMPLE",
+    "timestamp": "2026-03-19 06:17:54",
+    "date": "2026-03-19",
+    "time": "06:17:54",
+    "weekday": "THURSDAY",
+    "cam_id": "CAM_01",
+    "person_id": null,
+    "person_name": "SYSTEM",
+    "extra": {
+      "people_count": 0,
+      "unknown_count": 0,
+      "lying_count": 0,
+      "fall_count": 0,
+      "fps": 0.0,
+      "holding_count": 0,
+      "realtime_str": "19-03-2026 06:17:54 | THURSDAY"
+    }
+  },
+  {
+    "event_type": "OCCUPANCY_SAMPLE",
+    "timestamp": "2026-03-19 06:23:49",
+    "date": "2026-03-19",
+    "time": "06:23:49",
+    "weekday": "THURSDAY",
+    "cam_id": "CAM_01",
+    "person_id": null,
+    "person_name": "SYSTEM",
+    "extra": {
+      "people_count": 0,
+      "unknown_count": 0,
+      "lying_count": 0,
+      "fall_count": 0,
+      "fps": 0.0,
+      "holding_count": 0,
+      "realtime_str": "19-03-2026 06:23:49 | THURSDAY"
+    }
+  },
+  {
+    "event_type": "OCCUPANCY_SAMPLE",
+    "timestamp": "2026-03-19 06:23:52",
+    "date": "2026-03-19",
+    "time": "06:23:52",
+    "weekday": "THURSDAY",
+    "cam_id": "CAM_01",
+    "person_id": null,
+    "person_name": "SYSTEM",
+    "extra": {
+      "people_count": 0,
+      "unknown_count": 0,
+      "lying_count": 0,
+      "fall_count": 0,
+      "fps": 0.58,
+      "holding_count": 0,
+      "realtime_str": "19-03-2026 06:23:52 | THURSDAY"
+    }
+  },
+  {
+    "event_type": "OCCUPANCY_SAMPLE",
+    "timestamp": "2026-03-19 06:32:35",
+    "date": "2026-03-19",
+    "time": "06:32:35",
+    "weekday": "THURSDAY",
+    "cam_id": "CAM_01",
+    "person_id": null,
+    "person_name": "SYSTEM",
+    "extra": {
+      "people_count": 0,
+      "unknown_count": 0,
+      "lying_count": 0,
+      "fall_count": 0,
+      "fps": 0.0,
+      "holding_count": 0,
+      "realtime_str": "19-03-2026 06:32:35 | THURSDAY"
+    }
+  },
+  {
+    "event_type": "OCCUPANCY_SAMPLE",
+    "timestamp": "2026-03-19 06:32:38",
+    "date": "2026-03-19",
+    "time": "06:32:38",
+    "weekday": "THURSDAY",
+    "cam_id": "CAM_01",
+    "person_id": null,
+    "person_name": "SYSTEM",
+    "extra": {
+      "people_count": 0,
+      "unknown_count": 0,
+      "lying_count": 0,
+      "fall_count": 0,
+      "fps": 0.58,
+      "holding_count": 0,
+      "realtime_str": "19-03-2026 06:32:38 | THURSDAY"
+    }
+  }
+]

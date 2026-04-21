@@ -1,0 +1,1657 @@
+
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sunybot • Smart Elevator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+  <style>
+    :root{
+      --bg-1:#0b0f14;
+      --bg-2:#0f1a24;
+      --panel:#0f1620;
+      --panel-2:#121c28;
+      --panel-3:#0e141c;
+      --line:rgba(255,255,255,.08);
+      --text:#e8eef6;
+      --muted:rgba(232,238,246,.68);
+      --accent:#2bd2b6;
+      --accent-2:#57c9ff;
+      --warn:#ffb85c;
+      --danger:#ff6b6b;
+      --shadow:0 20px 60px rgba(0,0,0,.35);
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family:"Sora", "Noto Sans", sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1000px 700px at 15% 10%, #1b2632 0%, transparent 60%),
+        radial-gradient(900px 700px at 90% 5%, #143241 0%, transparent 55%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+      letter-spacing:.2px;
+    }
+
+    .wrap{max-width:1280px;margin:0 auto;padding:28px 22px 80px;}
+
+    .app-nav{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:6px 0 18px;
+    }
+
+    .nav-btn{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:12px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.2s ease;
+    }
+
+    .nav-btn.active{
+      background:linear-gradient(135deg, rgba(43,210,182,.28), rgba(87,201,255,.2));
+      border-color:rgba(87,201,255,.5);
+      color:#ffffff;
+      box-shadow:0 10px 24px rgba(43,210,182,.2);
+    }
+
+    .screen{display:none;}
+    .screen.active{display:block;}
+
+    .page-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin:8px 0 18px;
+    }
+
+    .page-title h1{
+      margin:0;
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+    }
+
+    .page-title .meta{
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)) , var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:20px;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .panel::after{
+      content:"";
+      position:absolute;
+      inset:auto -40% -60% -40%;
+      height:140px;
+      background:radial-gradient(120px 60px at 50% 0, rgba(43,210,182,.12), transparent 60%);
+      pointer-events:none;
+    }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:20px;
+    }
+
+    @media (max-width: 980px){
+      .grid-2{grid-template-columns:1fr;}
+    }
+
+    .status-grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+      align-items:stretch;
+    }
+
+    @media (max-width: 720px){
+      .status-grid{grid-template-columns:1fr;}
+    }
+
+    .floor-card{
+      background:linear-gradient(135deg, rgba(87,201,255,.18), rgba(43,210,182,.12));
+      border:1px solid rgba(87,201,255,.24);
+      border-radius:16px;
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      min-height:220px;
+    }
+
+    .floor-card .label{
+      color:var(--muted);
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .floor-display{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .floorNum{
+      font-size:56px;
+      font-weight:800;
+      line-height:1;
+      letter-spacing:1px;
+    }
+
+    .badge{
+      border-radius:999px;
+      padding:6px 12px;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      border:1px solid transparent;
+    }
+
+    .badge.ok{
+      color:#0c2c22;
+      background:rgba(43,210,182,.8);
+      border-color:rgba(43,210,182,.9);
+    }
+
+    .badge.err{
+      color:#3a0b0b;
+      background:rgba(255,107,107,.85);
+      border-color:rgba(255,107,107,.9);
+    }
+
+    .tiles{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:12px;
+    }
+
+    .tile{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      min-height:74px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:6px;
+    }
+
+    .tile .k{
+      color:var(--muted);
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .tile .v{
+      font-size:18px;
+      font-weight:700;
+    }
+
+    .btn{
+      border-radius:12px;
+      padding:12px 16px;
+      font-weight:700;
+      border:1px solid transparent;
+      cursor:pointer;
+    }
+
+    .btn-primary{
+      background:linear-gradient(135deg, #2bd2b6, #57c9ff);
+      border:none;
+      color:#0a0f14;
+      box-shadow:0 16px 40px rgba(43,210,182,.35);
+    }
+
+    .btn-ghost{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      color:var(--text);
+    }
+
+    .btn-danger{
+      background:linear-gradient(135deg, #ff6b6b, #ffb85c);
+      border:none;
+      color:#1a0b0b;
+      box-shadow:0 16px 40px rgba(255,107,107,.35);
+    }
+
+
+    .btn-stop{
+      background:linear-gradient(135deg, rgba(255,107,107,.95), rgba(255,184,92,.95));
+      border:none;
+      color:#1a0b0b;
+      box-shadow:0 16px 40px rgba(255,107,107,.28);
+    }
+.suny{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      gap:14px;
+      padding:26px 18px;
+    }
+
+    .bot-shell{
+      width:100%;
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .bot-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .bot-mode{
+      font-size:12px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .orbFrame{
+      width:160px;
+      height:160px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:radial-gradient(circle at 30% 20%, rgba(87,201,255,.45), transparent 55%),
+        radial-gradient(circle at 70% 80%, rgba(43,210,182,.4), transparent 60%),
+        rgba(255,255,255,.04);
+      border:1px solid rgba(87,201,255,.25);
+      box-shadow:0 24px 60px rgba(0,0,0,.45);
+      position:relative;
+      margin:10px auto 6px;
+    }
+
+    .orb{
+      width:105px;
+      height:105px;
+      border-radius:50%;
+      background:radial-gradient(circle at 30% 25%, #a7edff 0%, #57c9ff 35%, #2bd2b6 70%, #0b3d3a 100%);
+      box-shadow:0 0 40px rgba(87,201,255,.55), inset 0 0 18px rgba(255,255,255,.35);
+      animation:orbPulse 3.6s ease-in-out infinite;
+    }
+
+    .bot-shell.listening .orb{
+      animation:orbListening 1.2s ease-in-out infinite;
+      box-shadow:0 0 50px rgba(87,201,255,.8), inset 0 0 20px rgba(255,255,255,.45);
+    }
+
+    .bot-shell.speaking .orb{
+      animation:orbSpeaking .7s ease-in-out infinite;
+      box-shadow:0 0 60px rgba(43,210,182,.9), inset 0 0 22px rgba(255,255,255,.5);
+    }
+
+    @keyframes orbPulse{
+      0%,100%{transform:scale(1);}
+      50%{transform:scale(1.06);}
+    }
+
+    @keyframes orbListening{
+      0%,100%{transform:scale(1.02);} 50%{transform:scale(1.12);} 
+    }
+
+    @keyframes orbSpeaking{
+      0%,100%{transform:scale(1.08);} 50%{transform:scale(1.18);} 
+    }
+
+    .sunyTitle{
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:.6px;
+    }
+
+    .state{
+      font-size:14px;
+      color:var(--muted);
+      max-width:320px;
+      min-height:38px;
+    }
+
+    .subtle{
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .call-grid{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0,1fr));
+      gap:12px;
+    }
+
+    @media (max-width: 900px){
+      .call-grid{grid-template-columns:repeat(3, minmax(0,1fr));}
+    }
+
+    .floor-btn{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:18px 8px;
+      text-align:center;
+      font-weight:800;
+      font-size:20px;
+      cursor:pointer;
+      position:relative;
+      color:var(--text);
+      transition:.2s ease;
+    }
+
+    .floor-btn:hover{transform:translateY(-2px);}
+
+    .floor-btn.locked{
+      background:var(--panel-3);
+      border-style:dashed;
+      color:rgba(232,238,246,.6);
+    }
+
+    .floor-btn .lock{
+      display:block;
+      font-size:11px;
+      margin-top:6px;
+      color:var(--warn);
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .auth-panel{
+      margin-top:16px;
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .auth-card{
+      flex:1;
+      min-width:200px;
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .auth-card h3{
+      margin:0 0 8px;
+      font-size:14px;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .chat-layout{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:16px;
+    }
+
+    @media (max-width: 900px){
+      .chat-layout{grid-template-columns:1fr;}
+    }
+
+    .chat-box{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-height:420px;
+      height:520px;
+      max-height:70vh;
+    }
+
+    .chat-messages{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      overflow-y:auto;
+      overflow-x:hidden;
+      padding-right:4px;
+    }
+
+
+    /* ===== SCROLLBAR THEME (match dark UI) ===== */
+    .chat-messages{
+      scrollbar-width: thin; /* Firefox */
+      scrollbar-color: rgba(87,201,255,.45) rgba(255,255,255,.06); /* thumb track */
+    }
+    .chat-messages::-webkit-scrollbar{
+      width: 10px;
+    }
+    .chat-messages::-webkit-scrollbar-track{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb{
+      background: linear-gradient(180deg, rgba(43,210,182,.70), rgba(87,201,255,.65));
+      border-radius: 999px;
+      border: 2px solid rgba(15,22,32,.75); /* blend with panel */
+    }
+    .chat-messages::-webkit-scrollbar-thumb:hover{
+      background: linear-gradient(180deg, rgba(43,210,182,.88), rgba(87,201,255,.80));
+    }
+
+    .bubble{
+      max-width:80%;
+      padding:10px 12px;
+      border-radius:14px;
+      font-size:14px;
+    }
+
+    .bubble.user{
+      align-self:flex-end;
+      background:rgba(87,201,255,.18);
+      border:1px solid rgba(87,201,255,.25);
+    }
+
+    .bubble.bot{
+      align-self:flex-start;
+      background:rgba(43,210,182,.15);
+      border:1px solid rgba(43,210,182,.25);
+    }
+
+    .chat-input{
+      display:flex;
+      gap:10px;
+    }
+
+    .chat-input input{
+      flex:1;
+      background:var(--panel-3);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 14px;
+      color:var(--text);
+      font-size:14px;
+      outline:none;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .chip{
+      border:1px solid rgba(87,201,255,.4);
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--text);
+      cursor:pointer;
+      background:rgba(87,201,255,.08);
+    }
+
+    .sos-wrap{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+    }
+
+    @media (max-width: 900px){
+      .sos-wrap{grid-template-columns:1fr;}
+    }
+
+    .sos-button{
+      height:220px;
+      width:100%;
+      font-size:24px;
+      font-weight:800;
+      letter-spacing:.6px;
+    }
+
+    .guide-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:14px;
+    }
+
+    @media (max-width: 900px){
+      .guide-grid{grid-template-columns:1fr;}
+    }
+
+    .guide-card{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:16px;
+      min-height:150px;
+    }
+
+    .guide-card h3{margin:0 0 8px;font-size:16px;}
+
+    .maint-layout{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:16px;
+    }
+
+    .login-box{
+      max-width:420px;
+      margin:0 auto;
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:18px;
+    }
+
+    .login-box input{
+      width:100%;
+      margin-top:8px;
+      background:var(--panel-3);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+      color:var(--text);
+    }
+
+    .maint-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:14px;
+    }
+
+    @media (max-width: 1100px){
+      .maint-grid{grid-template-columns:repeat(2, minmax(0,1fr));}
+    }
+
+    @media (max-width: 780px){
+      .maint-grid{grid-template-columns:1fr;}
+    }
+
+    .card{
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .card h3{margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.4px;}
+
+    .table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+
+    .table th,.table td{
+      border-bottom:1px solid rgba(255,255,255,.08);
+      padding:8px 6px;
+      text-align:left;
+    }
+
+    .tag{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      background:rgba(255,255,255,.08);
+    }
+
+    .chart{
+      height:140px;
+      border-radius:12px;
+      background:linear-gradient(135deg, rgba(87,201,255,.2), rgba(43,210,182,.1));
+      border:1px solid rgba(87,201,255,.3);
+    }
+
+    .inline{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      font-size:12px;
+    }
+
+    .muted{color:var(--muted);}
+  </style>
+</head>
+<body>
+  <script src="/static/ui.js"></script>
+  <script>
+    renderTopbar();
+    renderTabbar("/");
+  </script>
+
+  <div class="wrap">
+    <div class="app-nav">
+      <button class="nav-btn active" data-screen="home">Màn hình chính</button>
+      <button class="nav-btn" data-screen="call">Gọi tầng</button>
+      <button class="nav-btn" data-screen="assistant">Trợ lý ảo</button>
+      <button class="nav-btn" data-screen="sos">SOS</button>
+      <button class="nav-btn" data-screen="guide">Hướng dẫn</button>
+      <button class="nav-btn" data-screen="maint">Bảo trì</button>
+    </div>
+
+    <section class="screen active" id="screen-home">
+      <div class="page-title">
+        <h1>Trạng thái thang máy</h1>
+        <div class="meta">Elevator #A · Khu chính</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="status-grid">
+            <div class="floor-card">
+              <div class="label">Tầng hiện tại</div>
+              <div class="floor-display">
+                <div class="floorNum" id="floor">--</div>
+                <div id="overload" class="badge ok">Bình thường</div>
+              </div>
+              <div class="inline">
+                <span class="pill">Wake word: <b>hey sunybot</b></span>
+                <span class="pill">Chạm 1 lần để xác nhận</span>
+              </div>
+            </div>
+
+            <div class="tiles">
+              <div class="tile">
+                <div class="k">Chiều đi</div>
+                <div class="v" id="direction">--</div>
+              </div>
+
+              <div class="tile">
+                <div class="k">Cửa</div>
+                <div class="v" id="door">--</div>
+              </div>
+
+              <div class="tile">
+                <div class="k">Số người</div>
+                <div class="v" id="people">--</div>
+              </div>
+
+              <div class="tile">
+                <div class="k">Thời gian</div>
+                <div class="v" id="clock">--:--:--</div>
+              </div>
+
+              <div class="tile">
+                <div class="k">Thời tiết</div>
+                <div class="v" id="weather">--</div>
+              </div>
+
+              <button class="btn btn-primary" onclick="goToCallScreen()">Gọi tầng</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel suny">
+          <div class="bot-shell" id="botShell">
+            <div class="bot-head">
+              <div class="sunyTitle">Sunybot</div>
+              <div class="bot-mode" id="botMode">Chế độ: Bình thường</div>
+            </div>
+            <div class="orbFrame">
+              <div class="orb"></div>
+            </div>
+            <div class="state" id="state">Đang chờ wake word…</div>
+            <div class="inline">
+              <button class="btn btn-ghost" onclick="setBotMode('idle')">Bình thường</button>
+              <button class="btn btn-ghost" onclick="setBotMode('listening')">Đang nghe</button>
+              <button class="btn btn-ghost" onclick="setBotMode('speaking')">Đang trả lời</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-call">
+      <div class="page-title">
+        <h1>Màn hình gọi tầng</h1>
+        <div class="meta">Chọn tầng cần đến</div>
+      </div>
+      <div class="panel">
+        <div class="call-grid">
+          <button class="floor-btn" onclick="callFloor(1)">1</button>
+          <button class="floor-btn" onclick="callFloor(2)">2</button>
+          <button class="floor-btn" onclick="callFloor(3)">3</button>
+          <button class="floor-btn" onclick="callFloor(4)">4</button>
+          <button class="floor-btn" onclick="callFloor(5)">5</button>
+          <button class="floor-btn locked" onclick="callFloor(6, true)">6<span class="lock">Khóa</span></button>
+          <button class="floor-btn" onclick="callFloor(7)">7</button>
+          <button class="floor-btn" onclick="callFloor(8)">8</button>
+          <button class="floor-btn locked" onclick="callFloor(9, true)">9<span class="lock">Khóa</span></button>
+          <button class="floor-btn" onclick="callFloor(10)">10</button>
+          <button class="floor-btn" onclick="callFloor(11)">11</button>
+          <button class="floor-btn" onclick="callFloor(12)">12</button>
+          <button class="floor-btn locked" onclick="callFloor(13, true)">13<span class="lock">Khóa</span></button>
+          <button class="floor-btn" onclick="callFloor(14)">14</button>
+          <button class="floor-btn" onclick="callFloor(15)">15</button>
+        </div>
+
+        <div class="auth-panel">
+          <div class="auth-card">
+            <h3>Xác thực thẻ</h3>
+            <div class="muted">Quét thẻ nội bộ để mở tầng bị khóa.</div>
+          </div>
+          <div class="auth-card">
+            <h3>Xác thực khuôn mặt</h3>
+            <div class="muted">Nhìn vào camera để xác thực FaceID.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-assistant">
+      <div class="page-title">
+        <h1>Trợ lý ảo</h1>
+        <div class="meta">Chat bằng giọng nói hoặc bàn phím</div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="chat-layout">
+            <div class="chat-box">
+              <div class="chat-messages" id="chatMessages">
+                <div class="bubble bot">Xin chào, tôi là Sunybot. Tôi có thể hỗ trợ gọi tầng, kiểm tra trạng thái và trả lời câu hỏi.</div>
+              </div>
+<div class="chat-input">
+                <input id="chatInput" type="text" placeholder="Nhập câu hỏi..."/>
+                <button class="btn btn-primary" id="sendBtn" onclick="sendChat()">Gửi</button>
+                <button class="btn btn-stop" id="stopBtn" style="display:none" onclick="stopChat()">Dừng</button>
+                <button class="btn btn-ghost" onclick="voiceChat()">Mic</button>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Câu hỏi mẫu</h3>
+              <div class="chips">
+                <div class="chip" onclick="quickAsk('Gọi tôi lên tầng 7')">Gọi tầng 7</div>
+                <div class="chip" onclick="quickAsk('Thang đang ở tầng mấy?')">Tầng hiện tại</div>
+                <div class="chip" onclick="quickAsk('Cửa đang mở hay đóng?')">Trạng thái cửa</div>
+                <div class="chip" onclick="quickAsk('Tình trạng quá tải?')">Kiểm tra tải</div>
+                <div class="chip" onclick="quickAsk('Thời tiết hôm nay thế nào?')">Thời tiết</div>
+              </div>
+              <div style="margin-top:12px" class="muted">Sunybot trả lời bằng giọng nói và hiển thị chữ cùng lúc.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel suny">
+          <div class="bot-shell" id="botShellChat">
+            <div class="bot-head">
+              <div class="sunyTitle">Avatar</div>
+              <div class="bot-mode" id="botModeChat">Chế độ: Bình thường</div>
+            </div>
+            <div class="orbFrame">
+              <div class="orb"></div>
+            </div>
+            <div class="state" id="stateChat">Sẵn sàng giao tiếp.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="screen" id="screen-sos">
+      <div class="page-title">
+        <h1>SOS</h1>
+        <div class="meta">Gửi tín hiệu khẩn cấp</div>
+      </div>
+      <div class="sos-wrap">
+        <div class="panel">
+          <button class="btn btn-danger sos-button" onclick="sendSOS()">GỌI KỸ THUẬT</button>
+        </div>
+        <div class="panel">
+          <h3 style="margin:0 0 8px">Thông tin gửi đi</h3>
+          <div class="inline">
+            <span class="pill" id="sosLocation">Elevator #A</span>
+            <span class="pill" id="sosTime">--:--</span>
+            <span class="pill" id="sosStatus">Trạng thái: --</span>
+          </div>
+          <div style="margin-top:12px" class="muted">Bao gồm vị trí, thời gian, trạng thái, tầng hiện tại.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-guide">
+      <div class="page-title">
+        <h1>Hướng dẫn khẩn cấp</h1>
+        <div class="meta">Kẹt thang · Cháy · Mất điện</div>
+      </div>
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h3>Kẹt thang</h3>
+          <div class="muted">Giữ bình tĩnh, bấm SOS, đứng cách cửa an toàn và chờ kỹ thuật.</div>
+        </div>
+        <div class="guide-card">
+          <h3>Cháy</h3>
+          <div class="muted">Không dùng thang máy. Dùng thang bộ gần nhất và báo nhân viên an toàn.</div>
+        </div>
+        <div class="guide-card">
+          <h3>Mất điện</h3>
+          <div class="muted">Thang sẽ tự đưa về tầng gần nhất. Không cạy cửa khi chưa có kỹ thuật.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-maint">
+      <div class="page-title">
+        <h1>Trung tâm bảo trì</h1>
+        <div class="meta">Chỉ dành cho kỹ thuật</div>
+      </div>
+
+      <div class="maint-layout">
+        <div class="login-box" id="maint-login">
+          <h3 style="margin:0 0 6px">Đăng nhập bảo trì</h3>
+          <div class="muted">Đăng nhập LAN/IP để mở dashboard quản trị dữ liệu.</div>
+          <input id="maintUser" placeholder="Tài khoản kỹ thuật"/>
+          <input id="maintPass" type="password" placeholder="Mật khẩu"/>
+          <input id="maintLan" placeholder="LAN/IP (ví dụ: 192.168.1.10)"/>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="maintenanceLogin()">Đăng nhập</button>
+            <button class="btn btn-ghost" onclick="fillDemo()">Demo nhanh</button>
+          </div>
+        </div>
+
+        <div id="maint-dashboard" style="display:none;">
+          <div class="maint-top-grid">
+            <div class="panel maint-merged-card" id="maintMergedStatusCard">
+              <div class="maint-card-head">
+                <div>
+                  <h3>Trạng thái thang & cấu hình hệ thống</h3>
+                  <div class="muted">Gộp trạng thái vận hành với thông số hệ thống</div>
+                </div>
+              </div>
+
+              <div class="maint-status-config-grid">
+                <div class="maint-status-block">
+                  <div class="inline">
+                    <span class="pill">Tầng: <b id="maintFloor">--</b></span>
+                    <span class="pill">Hướng: <b id="maintDirection">--</b></span>
+                    <span class="pill">Cửa: <b id="maintDoor">--</b></span>
+                    <span class="pill">Người: <b id="maintPeople">--</b></span>
+                  </div>
+                  <div style="margin-top:10px" class="muted">
+                    Cập nhật lúc <span id="maintTime">--:--</span>
+                  </div>
+                </div>
+
+                <div class="maint-config-block">
+                  <div class="inline">
+                    <span class="pill">Camera: ON</span>
+                    <span class="pill">Database: OK</span>
+                    <span class="pill">AI Model: OK</span>
+                    <span class="pill">SIM Module: Active</span>
+                    <span class="pill">Network: OK</span>
+                    <span class="pill">Storage: 72%</span>
+                  </div>
+                  <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+                    <button class="btn btn-ghost btn-sm">Ngưỡng cảnh báo</button>
+                    <button class="btn btn-ghost btn-sm">Đối tượng theo dõi</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel maint-camera-card">
+              <div class="maint-card-head">
+                <div>
+                  <h3>Live Camera & CV Events</h3>
+                  <div class="muted">Preview camera và các mô-đun CV</div>
+                </div>
+              </div>
+              <div class="chart maint-camera-preview"></div>
+              <div class="inline" style="margin-top:10px">
+                <span class="tag">Camera ON</span>
+                <span class="tag">Person tracking</span>
+                <span class="tag">Object detection</span>
+                <span class="tag">Face recognition</span>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-primary btn-sm">Bật Camera</button>
+                <button class="btn btn-ghost btn-sm">Person tracking</button>
+                <button class="btn btn-ghost btn-sm">Object detection</button>
+              </div>
+            </div>
+
+            <div class="panel maint-density-card">
+              <div class="maint-card-head">
+                <div>
+                  <h3>Mật độ người / ngày</h3>
+                  <div class="muted">Thống kê tải và cao điểm</div>
+                </div>
+              </div>
+              <div class="chart"></div>
+              <div class="inline" style="margin-top:10px">
+                <span class="pill">Cao điểm: 08h, 17h-18h</span>
+                <span class="pill">Tổng: 398 lượt</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel maint-timeline-card" style="margin-top:14px">
+            <div class="maint-card-head">
+              <div>
+                <h3>Timeline sự kiện</h3>
+                <div class="muted">Sự kiện CV, vận hành và cảnh báo kỹ thuật</div>
+              </div>
+            </div>
+
+            <div class="maint-table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Sự kiện</th>
+                    <th>Mức độ</th>
+                    <th>Độ tin cậy</th>
+                    <th>Thang/Tầng</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>08:14</td>
+                    <td>Phát hiện người lạ</td>
+                    <td><span class="tag tag-warn">Cảnh báo</span></td>
+                    <td>0.86</td>
+                    <td>#A / Tầng 6</td>
+                    <td><button class="btn btn-ghost btn-sm">Xem</button></td>
+                  </tr>
+                  <tr>
+                    <td>09:02</td>
+                    <td>Quá tải</td>
+                    <td><span class="tag tag-err">Lỗi</span></td>
+                    <td>0.92</td>
+                    <td>#A / Tầng 1</td>
+                    <td><button class="btn btn-ghost btn-sm">Xem</button></td>
+                  </tr>
+                  <tr>
+                    <td>10:20</td>
+                    <td>Cửa kẹt</td>
+                    <td><span class="tag tag-err">Lỗi</span></td>
+                    <td>0.78</td>
+                    <td>#A / Tầng 3</td>
+                    <td><button class="btn btn-ghost btn-sm">Xem</button></td>
+                  </tr>
+                  <tr>
+                    <td>11:46</td>
+                    <td>Bảo trì định kỳ hoàn tất</td>
+                    <td><span class="tag tag-ok">Thông báo</span></td>
+                    <td>1.00</td>
+                    <td>#A / Hệ thống</td>
+                    <td><button class="btn btn-ghost btn-sm">Xem</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="maint-bottom-grid" id="maintBottomGrid">
+            <div class="panel maint-lookup-card" id="maintLookupCard">
+              <div class="maint-card-head">
+                <div>
+                  <h3>Tra cứu dữ liệu</h3>
+                  <div class="muted">Giữ nguyên vùng tra cứu nghiệp vụ</div>
+                </div>
+              </div>
+
+              <div class="inline" style="margin-top:8px">
+                <button class="btn btn-ghost btn-sm">Nhân viên</button>
+                <button class="btn btn-ghost btn-sm">Khuôn mặt</button>
+                <button class="btn btn-ghost btn-sm">Nhật ký ra/vào</button>
+                <button class="btn btn-ghost btn-sm">Câu hỏi user</button>
+              </div>
+
+              <div class="maint-table-wrap" style="margin-top:12px">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Mã NV</th>
+                      <th>Họ tên</th>
+                      <th>Phòng ban</th>
+                      <th>Truy cập gần nhất</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>NV001</td><td>Nguyễn Văn A</td><td>Kỹ thuật</td><td>08:12</td></tr>
+                    <tr><td>NV002</td><td>Trần Thị B</td><td>Quản lý</td><td>09:30</td></tr>
+                    <tr><td>NV003</td><td>Lê Minh C</td><td>Bảo vệ</td><td>07:55</td></tr>
+                    <tr><td>NV004</td><td>Phạm Hoàng D</td><td>Kỹ thuật</td><td>10:15</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="inline" style="margin-top:12px">
+                <button class="btn btn-ghost btn-sm">Xuất CSV</button>
+                <button class="btn btn-ghost btn-sm">Xuất PDF</button>
+              </div>
+            </div>
+
+            <div class="panel data-manager-card" id="maintDataCard">
+              <div class="maint-card-head">
+                <div>
+                  <h3>Quản lý dữ liệu</h3>
+                  <div class="muted">Quản lý 2 nguồn database: MySQL trước, MongoDB sau</div>
+                </div>
+
+                <div class="data-manager-actions">
+                  <button class="btn btn-ghost btn-sm" id="maintExpandBtn" type="button">Phóng to</button>
+                  <button class="maint-chat-fab" id="maintChatToggle" type="button" title="Mở chat hỗ trợ">🤖</button>
+                </div>
+              </div>
+
+              <div class="data-tabs">
+                <button class="data-tab active" id="dataTabMysql" type="button" data-tab="mysql">MySQL</button>
+                <button class="data-tab" id="dataTabMongo" type="button" data-tab="mongo">MongoDB</button>
+              </div>
+
+              <div class="data-tab-panel active" id="dataPanelMysql">
+                <div class="mysql-connection-grid">
+                  <input id="mysqlHost" class="data-input" placeholder="Host" value="localhost"/>
+                  <input id="mysqlPort" class="data-input" placeholder="Port" value="3306"/>
+                  <input id="mysqlUser" class="data-input" placeholder="User" value="elevator_ai"/>
+                  <input id="mysqlPassword" class="data-input" type="password" placeholder="Password" value="elevator123"/>
+                  <button class="btn btn-primary btn-sm" id="mysqlConnectBtn" type="button">Connect</button>
+                </div>
+
+                <div class="mysql-dbbar">
+                  <select id="mysqlDbSelect" class="data-input data-select">
+                    <option value="">Chọn database</option>
+                    <option value="elevator_ai">elevator_ai</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" id="mysqlUseDbBtn" type="button">Use Database</button>
+                  <button class="btn btn-ghost btn-sm" id="mysqlLoadTableBtn" type="button">Load Table</button>
+                </div>
+
+                <div class="mysql-manager-layout">
+                  <div class="mysql-sidebar">
+                    <div class="mysql-sidebar-head">Tables</div>
+                    <div class="mysql-table-list" id="mysqlTableList">
+                      <button class="table-item active" type="button" data-table="employees">employees</button>
+                      <button class="table-item" type="button" data-table="intents">intents</button>
+                      <button class="table-item" type="button" data-table="prompts">prompts</button>
+                      <button class="table-item" type="button" data-table="answers">answers</button>
+                      <button class="table-item" type="button" data-table="chat_logs">chat_logs</button>
+                    </div>
+                  </div>
+
+                  <div class="mysql-main">
+                    <div class="mysql-grid-toolbar">
+                      <button class="btn btn-ghost btn-sm" id="mysqlAddRowBtn" type="button">Add Row</button>
+                      <button class="btn btn-ghost btn-sm" id="mysqlDeleteBtn" type="button">Delete Selected</button>
+                      <button class="btn btn-primary btn-sm" id="mysqlSaveBtn" type="button">Save Changes</button>
+                      <button class="btn btn-ghost btn-sm" id="mysqlRefreshBtn" type="button">Refresh</button>
+                    </div>
+
+                    <div class="mysql-grid-status muted" id="mysqlGridStatus">
+                      Giao diện quản lý MySQL đã sẵn sàng. Bước tiếp theo sẽ nối backend API để chạy thật.
+                    </div>
+
+                    <div class="mysql-grid-wrap">
+                      <table class="table mysql-grid" id="mysqlGrid">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><span class="readonly-cell">1</span></td>
+                            <td contenteditable="true">Nguyễn Văn A</td>
+                            <td contenteditable="true">Kỹ thuật</td>
+                            <td contenteditable="true">Active</td>
+                          </tr>
+                          <tr>
+                            <td><span class="readonly-cell">2</span></td>
+                            <td contenteditable="true">Trần Thị B</td>
+                            <td contenteditable="true">Quản lý</td>
+                            <td contenteditable="true">Active</td>
+                          </tr>
+                          <tr>
+                            <td><span class="readonly-cell">3</span></td>
+                            <td contenteditable="true">Lê Minh C</td>
+                            <td contenteditable="true">Bảo vệ</td>
+                            <td contenteditable="true">Inactive</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="data-tab-panel" id="dataPanelMongo">
+                <div class="mongo-placeholder">
+                  <div class="mongo-placeholder-title">MongoDB</div>
+                  <div class="muted">Tab này được giữ sẵn để phát triển sau. Hiện tại chỉ triển khai MySQL trước.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="maint-chat-panel" id="maintChatPanel">
+            <div class="maint-chat-head">
+              <div>
+                <div class="maint-chat-title">Sunybot Assistant</div>
+                <div class="muted">Hỏi nhanh về bảo trì, dữ liệu, lỗi vận hành</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="maintChatClose" type="button">Đóng</button>
+            </div>
+
+            <div class="maint-chat-messages" id="maintChatMessages">
+              <div class="maint-chat-bubble bot">
+                Xin chào, tôi là Sunybot. Hãy nhập câu hỏi liên quan đến bảo trì hoặc dữ liệu.
+              </div>
+            </div>
+
+            <div class="maint-chat-input-row">
+              <input id="maintChatInput" class="data-input" placeholder="Nhập nội dung cần hỗ trợ..."/>
+              <button class="btn btn-primary btn-sm" id="maintChatSend" type="button">Gửi</button>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="maintenanceLogout()">Đăng xuất</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  // ===== UTILITIES =====
+  const $id = (id) => document.getElementById(id);
+  const setText = (el, value) => { if(el) el.textContent = value; };
+  const nowHHMM = () => {
+    const d = new Date();
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  };
+  const speak = (text) => {
+    if(!window.speechSynthesis) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "vi-VN";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  };
+
+  // ===== UI STATE =====
+  const ui = {
+    navButtons: Array.from(document.querySelectorAll(".nav-btn")),
+    screens: Array.from(document.querySelectorAll(".screen")),
+    botShell: $id("botShell"),
+    botShellChat: $id("botShellChat"),
+    botMode: $id("botMode"),
+    botModeChat: $id("botModeChat"),
+    stateHome: $id("state"),
+    stateChat: $id("stateChat"),
+    chatMessages: $id("chatMessages"),
+    chatInput: $id("chatInput"),
+    sendBtn: $id("sendBtn"),
+    stopBtn: $id("stopBtn"),
+    chatBox: document.querySelector("#screen-assistant .chat-box"),
+    weather: $id("weather"),
+    tbWeather: $id("tb_weather"),
+    tbTime: $id("tb_time"),
+    tbPeople: $id("tb_people"),
+    sosTime: $id("sosTime"),
+    sosStatus: $id("sosStatus"),
+    maintLogin: $id("maint-login"),
+    maintDashboard: $id("maint-dashboard")
+  };
+
+  // ===== NAV =====
+  function navigateTo(target){
+    ui.navButtons.forEach(b => b.classList.remove("active"));
+    const btn = ui.navButtons.find(x => x.getAttribute("data-screen") === target);
+    if(btn) btn.classList.add("active");
+
+    ui.screens.forEach(s => s.classList.remove("active"));
+    const screen = $id(`screen-${target}`);
+    if(screen) screen.classList.add("active");
+  }
+
+  function initNav(){
+    ui.navButtons.forEach(btn => btn.addEventListener("click", () => {
+      const target = btn.getAttribute("data-screen");
+      navigateTo(target);
+    }));
+  }
+
+  function goToCallScreen(){
+    navigateTo("call");
+  }
+
+  // ===== TOP BAR =====
+  function startTopbarClock(){
+    setText(ui.tbTime, nowHHMM());
+    setInterval(() => setText(ui.tbTime, nowHHMM()), 1000);
+  }
+
+  // ===== STATUS API =====
+  async function updateStatus(){
+    try{
+      const r = await fetch("/api/elevator/status");
+      const s = await r.json();
+
+      setText($id("floor"), s.floor ?? "--");
+      setText($id("clock"), s.time ?? "--:--:--");
+      setText($id("people"), s.people_count ?? "--");
+      setText($id("door"), s.door ?? "--");
+      setText(ui.tbPeople, s.people_count ?? "--");
+
+      const dir = s.direction || "--";
+      setText($id("direction"), dir === "UP" ? "↑ Lên" : dir === "DOWN" ? "↓ Xuống" : "Đứng");
+
+      const ol = $id("overload");
+      if(ol){
+        if(s.overload){
+          ol.textContent = "QUÁ TẢI";
+          ol.className = "badge err";
+        }else{
+          ol.textContent = "Bình thường";
+          ol.className = "badge ok";
+        }
+      }
+
+      setText($id("maintFloor"), s.floor ?? "--");
+      setText($id("maintDirection"), dir);
+      setText($id("maintDoor"), s.door ?? "--");
+      setText($id("maintPeople"), s.people_count ?? "--");
+      setText($id("maintTime"), nowHHMM());
+      setText(ui.sosStatus, `Trạng thái: ${s.door ?? "--"}`);
+    }catch(_){}
+  }
+
+  function startStatusPolling(){
+    updateStatus();
+    setInterval(updateStatus, 1000);
+  }
+
+  // ===== WEATHER =====
+  async function updateWeather(){
+    try{
+      const r = await fetch("/api/weather");
+      const w = await r.json();
+      const text = `${w.text} ${w.temp}°C`;
+      setText(ui.weather, text);
+      setText(ui.tbWeather, text);
+    }catch(_){
+      setText(ui.weather, "--");
+      setText(ui.tbWeather, "--");
+    }
+  }
+
+  function startWeatherPolling(){
+    updateWeather();
+    setInterval(updateWeather, 10 * 60 * 1000);
+  }
+
+  // ===== SOS =====
+  function startSOSTime(){
+    const tick = () => setText(ui.sosTime, new Date().toLocaleTimeString("vi-VN"));
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  async function sendSOS(){
+    try{
+      await fetch("/api/sos", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          elevator:"A",
+          time: new Date().toISOString(),
+          floor: $id("floor")?.textContent ?? "--",
+          status: $id("door")?.textContent ?? "--"
+        })
+      });
+      showToast("Đã gửi tín hiệu SOS");
+    }catch(_){
+      showToast("Không thể gửi SOS");
+    }
+  }
+
+  // ===== CALL FLOOR =====
+  async function callFloor(floor, locked){
+    if(locked){
+      showToast("Tầng bị khóa. Cần xác thực.");
+      return;
+    }
+    try{
+      await fetch("/api/elevator/call", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ floor })
+      });
+      showToast(`Đã gọi tầng ${floor}`);
+    }catch(_){
+      showToast("Không thể gọi tầng");
+    }
+  }
+
+  async function confirmCall(floor){
+    await callFloor(floor, false);
+  }
+
+  // ===== BOT STATE =====
+  function setBotMode(mode){
+    if(!ui.botShell || !ui.botMode) return;
+    ui.botShell.classList.remove("listening","speaking");
+    if(mode === "listening"){
+      ui.botShell.classList.add("listening");
+      ui.botMode.textContent = "Chế độ: Đang nghe";
+    }else if(mode === "speaking"){
+      ui.botShell.classList.add("speaking");
+      ui.botMode.textContent = "Chế độ: Đang trả lời";
+    }else{
+      ui.botMode.textContent = "Chế độ: Bình thường";
+    }
+  }
+
+  function setBotModeChat(mode){
+    if(!ui.botShellChat || !ui.botModeChat) return;
+    ui.botShellChat.classList.remove("listening","speaking");
+    if(mode === "listening"){
+      ui.botShellChat.classList.add("listening");
+      ui.botModeChat.textContent = "Chế độ: Đang nghe";
+    }else if(mode === "speaking"){
+      ui.botShellChat.classList.add("speaking");
+      ui.botModeChat.textContent = "Chế độ: Đang trả lời";
+    }else{
+      ui.botModeChat.textContent = "Chế độ: Bình thường";
+    }
+  }
+
+  function setState(text){ setText(ui.stateHome, text); }
+
+  // ===== WAKE WORD =====
+  let recWake = null;
+  let recChat = null;
+
+  function createSpeechRecognition(){
+    return window.SpeechRecognition || window.webkitSpeechRecognition;
+  }
+
+  function enableWake(){
+    const SpeechRecognition = createSpeechRecognition();
+    if(!SpeechRecognition){
+      setState("Không hỗ trợ STT trên trình duyệt này.");
+      return;
+    }
+
+    recWake = new SpeechRecognition();
+    recWake.lang = "vi-VN";
+    recWake.continuous = true;
+    recWake.interimResults = true;
+
+    recWake.onstart = () => {
+      setBotMode("listening");
+      setState("Đang nghe wake word…");
+    };
+
+    recWake.onerror = () => {
+      setBotMode("idle");
+      setState("Mic lỗi — tự khôi phục...");
+      setTimeout(() => { try{ recWake.start(); }catch(_){ } }, 800);
+    };
+
+    recWake.onend = () => {
+      setBotMode("idle");
+      setTimeout(() => { try{ recWake.start(); }catch(_){ } }, 350);
+    };
+
+    let lastFinal = "";
+    recWake.onresult = async (ev) => {
+      let transcript = "";
+      for(let i=ev.resultIndex; i<ev.results.length; i++){
+        transcript += ev.results[i][0].transcript;
+      }
+      transcript = transcript.trim().toLowerCase();
+
+      const last = ev.results[ev.results.length-1];
+      if(last && last.isFinal){
+        if(transcript === lastFinal) return;
+        lastFinal = transcript;
+
+        if(transcript.includes("hey sunybot") || transcript.includes("hey sunnybot")){
+          const after = transcript
+            .replace("hey sunybot","")
+            .replace("hey sunnybot","")
+            .trim();
+
+          if(!after){
+            setState("Đã kích hoạt. Hãy nói câu lệnh...");
+            return;
+          }
+
+          setState("Đang xử lý: " + after);
+          setBotMode("speaking");
+
+          try{
+            const r = await fetch("/chat", {
+              method:"POST",
+              headers:{ "Content-Type":"application/json" },
+              body: JSON.stringify({ message: after })
+            });
+            const data = await r.json();
+            const answer = data.answer ? data.answer : "...";
+            setState("Sunybot: " + answer);
+            speak(answer);
+          }catch(_){
+            setState("Sunybot hiện không thể trả lời.");
+          }finally{
+            setBotMode("listening");
+          }
+        }
+      }
+    };
+
+    try{ recWake.start(); }catch(_){}
+  }
+
+  // ===== CHAT SCREEN =====
+  function appendMessage(text, who){
+    if(!ui.chatMessages) return;
+    const div = document.createElement("div");
+    div.className = `bubble ${who}`;
+    div.textContent = text;
+    ui.chatMessages.appendChild(div);
+    ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
+  }
+
+  let chatAbort = null;
+
+  function toggleChatBusy(busy){
+    if(ui.sendBtn) ui.sendBtn.style.display = busy ? "none" : "inline-flex";
+    if(ui.stopBtn) ui.stopBtn.style.display = busy ? "inline-flex" : "none";
+  }
+
+  function stopChat(){
+    try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch(_){}
+    if(chatAbort){
+      try{ chatAbort.abort(); }catch(_){}
+      chatAbort = null;
+    }
+    toggleChatBusy(false);
+    setBotModeChat("idle");
+    setText(ui.stateChat, "Đã hủy.");
+  }
+
+  async function sendChat(){
+    if(!ui.chatInput) return;
+
+    const message = ui.chatInput.value.trim();
+    if(!message) return;
+
+    // Nếu đang có request trước đó thì hủy (để tránh chồng lệnh)
+    if(chatAbort){
+      try{ chatAbort.abort(); }catch(_){}
+      chatAbort = null;
+    }
+
+    ui.chatInput.value = "";
+    appendMessage(message, "user");
+
+    toggleChatBusy(true);
+    setBotModeChat("speaking");
+    setText(ui.stateChat, "Đang trả lời...");
+
+    chatAbort = new AbortController();
+
+    try{
+      const r = await fetch("/chat", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ message }),
+        signal: chatAbort.signal
+      });
+
+      const data = await r.json();
+      const answer = data.answer ? data.answer : "...";
+      appendMessage(answer, "bot");
+      setText(ui.stateChat, "Đã trả lời.");
+      speak(answer);
+    }catch(e){
+      // Bị hủy bởi nút Dừng
+      if(e && (e.name === "AbortError" || String(e).includes("AbortError"))){
+        setText(ui.stateChat, "Đã hủy.");
+      }else{
+        appendMessage("Sunybot hiện không thể trả lời.", "bot");
+        setText(ui.stateChat, "Lỗi kết nối.");
+      }
+    }finally{
+      chatAbort = null;
+      toggleChatBusy(false);
+      setBotModeChat("idle");
+    }
+  }
+
+
+  function quickAsk(text){
+    if(!ui.chatInput) return;
+    ui.chatInput.value = text;
+    sendChat();
+  }
+
+  function voiceChat(){
+    const SpeechRecognition = createSpeechRecognition();
+    if(!SpeechRecognition){
+      showToast("Không hỗ trợ STT");
+      return;
+    }
+
+    if(recWake){
+      try{ recWake.stop(); }catch(_){ }
+    }
+
+    recChat = new SpeechRecognition();
+    recChat.lang = "vi-VN";
+    recChat.continuous = false;
+    recChat.interimResults = false;
+    setBotModeChat("listening");
+    setText(ui.stateChat, "Đang nghe câu hỏi...");
+
+    recChat.onresult = (ev) => {
+      const transcript = ev.results[0][0].transcript.trim();
+      appendMessage(transcript, "user");
+      if(ui.chatInput) ui.chatInput.value = transcript;
+      sendChat();
+    };
+
+    recChat.onerror = () => {
+      setBotModeChat("idle");
+      setText(ui.stateChat, "Không nghe được.");
+      if(recWake){ try{ recWake.start(); }catch(_){ } }
+    };
+
+    recChat.onend = () => {
+      setBotModeChat("idle");
+      if(recWake){ try{ recWake.start(); }catch(_){ } }
+    };
+
+    try{ recChat.start(); }catch(_){}
+  }
+
+  // ===== MAINTENANCE MOVED TO MODULE =====
+
+  // ===== INIT =====
+  function init(){
+    initNav();
+    startTopbarClock();
+    startStatusPolling();
+    startWeatherPolling();
+    startSOSTime();
+    enableWake();
+  }
+
+  init();
+
+  // expose handlers used in inline HTML attributes
+  window.callFloor = callFloor;
+  window.confirmCall = confirmCall;
+  window.navigateTo = navigateTo;
+  window.goToCallScreen = goToCallScreen;
+  window.sendSOS = sendSOS;
+  window.setBotMode = setBotMode;
+  window.setBotModeChat = setBotModeChat;
+  window.sendChat = sendChat;
+  window.stopChat = stopChat;
+  window.quickAsk = quickAsk;
+  window.voiceChat = voiceChat;
+</script>
+
+
+<script type="module">
+  import {
+    initMaint,
+    maintenanceLogin,
+    maintenanceLogout,
+    fillDemo,
+    switchDataTab,
+    toggleDataExpand,
+    toggleMaintChat
+  } from "/static/js/maint.js";
+
+  window.maintenanceLogin = maintenanceLogin;
+  window.maintenanceLogout = maintenanceLogout;
+  window.fillDemo = fillDemo;
+  window.switchDataTab = switchDataTab;
+  window.toggleDataExpand = toggleDataExpand;
+  window.toggleMaintChat = toggleMaintChat;
+
+  initMaint();
+</script>
+
+</body>
+</html>

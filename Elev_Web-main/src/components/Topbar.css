@@ -1,0 +1,61 @@
+.suny-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    margin: 0;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: linear-gradient(180deg, rgba(18, 28, 40, 0.92), rgba(15, 22, 32, 0.72));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.suny-topbar .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Sora', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+}
+
+.suny-topbar .brand .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2bd2b6, #57c9ff);
+    box-shadow: 0 0 18px rgba(87, 201, 255, 0.5);
+}
+
+.suny-topbar .right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.suny-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(232, 238, 246, 0.92);
+    font-size: 12px;
+    font-family: 'Sora', system-ui, sans-serif;
+    white-space: nowrap;
+}
+
+.suny-pill .k {
+    color: rgba(232, 238, 246, 0.62);
+    font-weight: 600;
+}
+
+.suny-pill .v {
+    font-weight: 800;
+}

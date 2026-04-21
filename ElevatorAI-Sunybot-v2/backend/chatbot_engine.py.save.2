@@ -1,0 +1,53 @@
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from config.db_config import get_db
+
+
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+SIM_THRESHOLD = 0.75
+
+def get_chatbot_response(user_question):
+    db = get_db()
+    cursor = db.cursor()
+
+    cursor.execute("""
+        SELECT p.prompt_text, i.intent_id, i.intent_name
+        FROM prompts p
+        JOIN intents i ON p.intent_id = i.intent_id
+    """)
+    rows = cursor.fetchall()
+
+    prompts = [r[0] for r in rows]
+    intent_ids = [r[1] for r in rows]
+    intent_names = [r[2] for r in rows]
+
+    prompt_embeddings = model.encode(prompts)
+    user_embedding = model.encode([user_question])
+
+    scores = cosine_similarity(user_embedding, prompt_embeddings)[0]
+    max_score = max(scores)
+
+    if max_score < SIM_THRESHOLD:
+        return "Tôi chỉ trả lời các câu hỏi liên quan đến hệ thống thang máy."
+
+    idx = np.argmax(scores)
+    intent_id = intent_ids[idx]
+    intent_name = intent_names[idx]
+
+    cursor.execute(
+wwwwwwwwwwwwwwww        "SELECT answer_text FROM answers WHERE intent_id=%s",
+        (intent_id,)
+    )
+    answer = cursor.fetchone()[0]
+
+    # log
+    cursor.execute(
+        "INSERT INTO chat_logs (question, intent_name, confidence) VALUES (%s,%s,%s)",
+        (user_question, intent_name, float(max_score))
+    )
+    db.commit()
+
+    return answer
+

@@ -1,0 +1,44 @@
+from backend.employee_service import find_employee
+from backend.embedding_service import find_best_answer
+from backend.ollama_service import ollama_answer
+from backend.schemas import ChatResponse
+from backend.db import log_chat
+
+
+CONF_THRESHOLD = 0.75
+
+
+def handle_chat(employee_id: str, employee_name: str, question: str) -> ChatResponse:
+    # 1. Ưu tiên tra cứu nhân viên
+    employee = find_employee(employee_id, employee_name)
+    if employee:
+        return ChatResponse(
+            answer=(
+                f"Nhan vien {employee['full_name']}, "
+                f"chuc vu {employee['position']}, "
+                f"phong ban {employee['department']}"
+            ),
+            source="employee_db"
+        )
+
+    # 2. Semantic matching (embedding)
+    intent, confidence = match_intent(question)
+
+    # 3. Nếu match đủ tốt → lấy câu trả lời DB
+    if intent and confidence >= CONF_THRESHOLD:
+        answer = find_best_answer(intent)
+        log_chat(question, intent, confidence)
+        return ChatResponse(answer=answer, source="database")
+
+    # 4. Fallback sang LLM
+    try:
+        llm_answer = ollama_answer(question)
+        if not llm_answer.strip():
+            raise Exception("Empty LLM response")
+        return ChatResponse(answer=llm_answer, source="llm")
+    except:
+        return ChatResponse(
+            answer="Sunybot hien khong the tra loi cau hoi, vui long hoi cau hoi lien quan",
+            source="fallback"
+        )
+

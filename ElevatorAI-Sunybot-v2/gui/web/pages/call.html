@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gọi tầng</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <script src="/static/ui.js"></script>
+  <script>
+    renderTopbar({ title:"Gọi tầng", subtitle:"Keypad / Floor Views • Touch to Go" });
+  </script>
+
+  <div class="wrap">
+    <div class="card card-accent">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <div style="font-weight:950;font-size:18px">Vui lòng chọn tầng</div>
+          <div class="muted" style="margin-top:6px">Tầng khóa sẽ yêu cầu xác thực (face/thẻ)</div>
+        </div>
+        <div class="badge" id="picked">Chưa chọn</div>
+      </div>
+
+      <div class="keypad" id="keys"></div>
+
+      <div style="display:flex;gap:12px;margin-top:14px">
+        <button class="btn btn-primary" onclick="confirmGo()">✅ Xác nhận</button>
+        <button class="btn" onclick="clearPick()">↩ Xóa</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    renderBottomNav("/pages/call.html");
+
+    const lockedFloors = new Set([13, 17]); // demo: tầng khóa
+    let current = null;
+
+    const keys = document.getElementById("keys");
+    const picked = document.getElementById("picked");
+
+    function mkKey(n){
+      const b = document.createElement("button");
+      b.className = "key" + (lockedFloors.has(n) ? " lock" : "");
+      b.textContent = n;
+      b.onclick = () => pick(n);
+      return b;
+    }
+
+    // demo 1..12 (bạn đổi theo tòa nhà)
+    for(let i=1;i<=12;i++) keys.appendChild(mkKey(i));
+    // thêm 0 / * / #
+    const star = document.createElement("button"); star.className="key"; star.textContent="*";
+    const zero = document.createElement("button"); zero.className="key"; zero.textContent="0";
+    const hash = document.createElement("button"); hash.className="key"; hash.textContent="#";
+    star.onclick=()=>showToast("Chức năng mở rộng sau");
+    zero.onclick=()=>pick(0);
+    hash.onclick=()=>showToast("Chức năng mở rộng sau");
+    keys.appendChild(star); keys.appendChild(zero); keys.appendChild(hash);
+
+    function pick(n){
+      current = n;
+      picked.textContent = lockedFloors.has(n) ? `Tầng ${n} (Khóa)` : `Tầng ${n}`;
+      if(lockedFloors.has(n)) showToast(`Tầng ${n} cần xác thực`, 1600);
+    }
+
+    function clearPick(){
+      current = null;
+      picked.textContent = "Chưa chọn";
+    }
+
+    async function confirmGo(){
+      if(current===null){
+        showToast("Vui lòng chọn tầng trước");
+        return;
+      }
+      if(lockedFloors.has(current)){
+        showToast("Tầng này đang khóa — cần xác thực");
+        return;
+      }
+      // Phase 2: gọi API /api/elevator/call
+      showToast(`Đã gửi lệnh đi tầng ${current}`);
+    }
+  </script>
+</body>
+</html>

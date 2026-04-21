@@ -1,0 +1,10 @@
+# backend/chatbot_engine.py
+
+def chat_with_sunybot(message: str) -> str:
+    message = message.strip()
+
+    if not message:
+        return "⚠️ Sunybot: Bạn chưa nhập nội dung."
+
+    # (Sau này thay bằng Ollama / semantic matcher / embedding)
+    return f"☀️ Sunybot trả lời: Tôi đã nhận được câu hỏi của bạn: '{message}'"

@@ -1,0 +1,45 @@
+/* Guide page styles */
+.guide-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    align-items: stretch;
+}
+
+@media (max-width: 900px) {
+    .guide-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .guide-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.guide-card {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    min-height: 146px;
+    transition: 0.2s ease;
+}
+
+.guide-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(87, 201, 255, 0.3);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.guide-icon {
+    font-size: 30px;
+    margin-bottom: 8px;
+}
+
+.guide-card h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 700;
+}

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.venv_face/
+*.swp
+*.whl
+.env

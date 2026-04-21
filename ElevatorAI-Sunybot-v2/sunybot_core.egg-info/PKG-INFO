@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: sunybot-core
+Version: 1.0.0
+Summary: Sunybot core library (engine, matcher, services)
+Requires-Python: >=3.8
+Requires-Dist: pymysql
+Requires-Dist: requests
+Requires-Dist: unidecode

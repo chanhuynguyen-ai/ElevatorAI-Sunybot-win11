@@ -1,0 +1,26 @@
+import json
+import mysql.connector
+from backend.embedding_service import embed_text
+
+conn = mysql.connector.connect(
+    host="elevator_ai",
+    user="root",
+    password="elevator123",
+    database="elevator_ai"
+)
+cursor = conn.cursor(dictionary=True)
+
+cursor.execute("SELECT prompt_id, prompt_text FROM prompts WHERE embedding IS NULL")
+rows = cursor.fetchall()
+
+for row in rows:
+    vec = embed_text(row["prompt_text"])
+    cursor.execute(
+        "UPDATE prompts SET embedding=%s WHERE prompt_id=%s",
+        (json.dumps(vec), row["prompt_id"])
+    )
+
+conn.commit()
+conn.close()
+print("✅ Embedding build xong")
+

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sunybot</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="card avatar" style="margin-bottom:14px">
+      <div class="orb" style="width:160px;height:160px;border-radius:28px"></div>
+      <div style="font-size:20px;font-weight:950">Sunybot</div>
+      <div class="state" id="sunyState">Sẵn sàng hỗ trợ…</div>
+
+      <div class="chips">
+        <button class="chip" onclick="quickAsk('Tốc độ thang máy là bao nhiêu?')">Tốc độ thang máy?</button>
+        <button class="chip" onclick="quickAsk('NV020')">Tra cứu NV020</button>
+        <button class="chip" onclick="quickAsk('Thang máy có quá tải không?')">Kiểm tra quá tải</button>
+      </div>
+    </div>
+
+    <div class="card chat">
+      <div id="msgs" class="msgs"></div>
+
+      <div class="inputbar">
+        <input id="text" placeholder="Nhập câu hỏi… (VD: Tốc độ thang máy? / NV020)" />
+        <button id="mic" class="mic-mini" title="Nhấn để nói / nhấn lại để dừng">🎙</button>
+        <button id="send" class="btn btn-primary" style="min-height:auto">Gửi</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/ui.js"></script>
+  <script>
+    renderTabBar("/pages/assistant.html");
+
+    const msgs = document.getElementById("msgs");
+    const input = document.getElementById("text");
+    const btn = document.getElementById("send");
+    const mic = document.getElementById("mic");
+
+    function nowHHMM() {
+      const d = new Date();
+      return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+    }
+
+    function addMsg(role, text, meta="") {
+      const wrap = document.createElement("div");
+      wrap.className = "msgwrap";
+
+      const t = document.createElement("div");
+      t.className = "time";
+      t.textContent = nowHHMM();
+      wrap.appendChild(t);
+
+      const row = document.createElement("div");
+      row.className = "rowmsg " + (role==="me" ? "me" : "bot");
+
+      const b = document.createElement("div");
+      b.className = "bubble";
+      b.textContent = text;
+
+      row.appendChild(b);
+      wrap.appendChild(row);
+
+      if(meta){
+        const m = document.createElement("div");
+        m.className = "meta";
+        m.textContent = meta;
+        wrap.appendChild(m);
+      }
+
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+      return wrap;
+    }
+
+    function addTyping(){
+      const wrap = document.createElement("div");
+      wrap.className = "msgwrap";
+
+      const t = document.createElement("div");
+      t.className = "time";
+      t.textContent = nowHHMM();
+      wrap.appendChild(t);
+
+      const row = document.createElement("div");
+      row.className = "rowmsg bot";
+
+      const b = document.createElement("div");
+      b.className = "bubble";
+      b.innerHTML = `
+        <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <div class="thinking">đang suy nghĩ</div>
+      `;
+
+      row.appendChild(b);
+      wrap.appendChild(row);
+
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+      return wrap;
+    }
+
+    async function sendText(text){
+      if(!text) return;
+      addMsg("me", text);
+      btn.disabled = true;
+
+      const typing = addTyping();
+
+      try{
+        const r = await fetch("/chat", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await r.json();
+        typing.remove();
+
+        const meta =
+          `source=${data.source}` +
+          (data.intent ? ` • intent=${data.intent}` : "") +
+          (data.confidence != null ? ` • conf=${Number(data.confidence).toFixed(3)}` : "");
+
+        addMsg("bot", data.answer, meta);
+
+      }catch(e){
+        typing.remove();
+        addMsg("bot","Sunybot hiện không thể trả lời câu hỏi này, vui lòng nhập câu hỏi khác","source=FALLBACK");
+      }finally{
+        btn.disabled = false;
+        input.value = "";
+        input.focus();
+      }
+    }
+
+    function quickAsk(q){
+      input.value = q;
+      sendText(q);
+    }
+
+    btn.addEventListener("click", ()=>sendText(input.value.trim()));
+    input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") sendText(input.value.trim()); });
+
+    // Mic toggle UI (sau này gắn STT)
+    let micOn=false;
+    mic.addEventListener("click", ()=>{
+      micOn=!micOn;
+      mic.classList.toggle("on", micOn);
+      document.getElementById("sunyState").textContent = micOn ? "Đang lắng nghe…" : "Sẵn sàng hỗ trợ…";
+      showToast(micOn ? "Mic: đang nghe…" : "Mic: đã dừng");
+    });
+
+    addMsg("bot","Xin chào! Tôi là Sunybot, tôi có thể giúp gì cho bạn?","source=DB_PROMPT");
+  </script>
+</body>
+</html>

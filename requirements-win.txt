@@ -1,0 +1,71 @@
+# Win11 Python requirements for Sunybot / ElevatorAI hybrid runtime
+# Covers:
+# - ElevatorAI-Sunybot-v2 main backend (port 8000)
+# - ElevatorAI-Sunybot-cv-v2 CV backend (port 8001)
+#
+# Recommended Python: 3.9.x on Windows 11
+# Install with:
+#   python -m pip install --upgrade pip setuptools wheel
+#   python -m pip install -r requirements-win.txt
+#
+# IMPORTANT:
+# - Frontend packages (React/Vite) are NOT installed by pip. Run `npm install` inside Elev_Web-main.
+# - PostgreSQL and Ollama are external runtimes, not pip packages.
+# - If you want CUDA GPU acceleration, torch may need a vendor-specific install command.
+
+# Core API/runtime
+fastapi==0.79.0
+uvicorn==0.16.0
+starlette==0.19.1
+pydantic==1.10.26
+anyio==3.6.2
+h11==0.13.0
+sniffio==1.2.0
+
+# Database
+psycopg[binary]==3.2.13
+psycopg2-binary==2.9.11
+SQLAlchemy==1.4.54
+PyMySQL==1.0.2
+
+# General backend utilities
+python-dotenv==0.20.0
+requests==2.27.1
+urllib3==1.26.20
+charset-normalizer==2.0.12
+certifi==2025.4.26
+idna==3.10
+Unidecode==1.3.8
+python-dateutil==2.9.0.post0
+pytz==2026.1
+typing_extensions==4.15.0
+six==1.17.0
+
+# Data / ML helpers
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+scipy==1.13.1
+joblib==1.4.2
+threadpoolctl==3.5.0
+
+# CV stack
+opencv-python==4.10.0.84
+opencv-contrib-python==4.10.0.84
+ultralytics==8.4.39
+Pillow==10.4.0
+
+# Torch runtime (CPU by default unless you install a CUDA wheel separately)
+torch==2.8.0
+torchvision==0.23.0
+torchaudio==2.8.0
+
+# Face recognition / embedding
+insightface==0.7.3
+onnxruntime-gpu==1.19.2
+# If onnxruntime-gpu fails on your machine, replace it with:
+# onnxruntime==1.19.2
+
+# Compatibility helpers
+click==8.0.4
+greenlet==2.0.2
