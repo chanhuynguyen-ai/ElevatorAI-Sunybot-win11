@@ -1,6 +1,6 @@
 <div align="center">
 
-# ElevatorAI Sunybot
+# ElevatorAI-Edge-Platform
 
 **A local-first intelligent elevator platform combining real-time computer vision, an LLM assistant, backend APIs, and operational data in one Windows 11 monorepo.**
 
