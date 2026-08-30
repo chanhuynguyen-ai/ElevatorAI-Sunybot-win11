@@ -1,0 +1,83 @@
+.app-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 18px;
+}
+
+.nav-btn {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nav-btn:hover {
+  background: linear-gradient(135deg, rgba(43, 210, 182, 0.15), rgba(87, 201, 255, 0.1));
+}
+
+.nav-btn.active {
+  background: linear-gradient(135deg, rgba(43, 210, 182, 0.28), rgba(87, 201, 255, 0.2));
+  border-color: rgba(87, 201, 255, 0.5);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(43, 210, 182, 0.2);
+}
+
+.global-overload-alert {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 107, 122, 0.4);
+  background: linear-gradient(135deg, rgba(120, 11, 28, 0.95), rgba(62, 8, 18, 0.95));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(10px);
+}
+
+.global-overload-badge {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff4f4;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.global-overload-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.global-overload-copy strong {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.global-overload-copy span {
+  color: rgba(255, 245, 245, 0.9);
+  font-size: 13px;
+}
+
+@media (max-width: 920px) {
+  .global-overload-alert {
+    top: 72px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    min-width: 0;
+  }
+}

@@ -1,0 +1,109 @@
+.agent-trace-panel {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(87, 201, 255, 0.16);
+}
+
+.agent-trace-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.agent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+}
+
+.agent-pill.primary {
+  background: rgba(87, 201, 255, 0.14);
+  border-color: rgba(87, 201, 255, 0.28);
+}
+
+.agent-meta-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agent-section {
+  margin-top: 12px;
+}
+
+.agent-section-title {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text);
+}
+
+.agent-tool-list,
+.agent-citation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-tool-item,
+.agent-citation-item,
+.agent-memory-box {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(15, 22, 32, 0.55);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.agent-tool-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.agent-tool-name,
+.agent-citation-source {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.agent-tool-status,
+.agent-tool-time,
+.agent-citation-score,
+.agent-tool-args,
+.agent-tool-summary,
+.agent-citation-text,
+.agent-memory-box {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.agent-tool-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.agent-tool-status.ok { color: #2bd2b6; }
+.agent-tool-status.error { color: #ff6b6b; }
+.agent-tool-status.blocked { color: #ffb85c; }
+.agent-tool-status.skipped { color: #9db1c7; }
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

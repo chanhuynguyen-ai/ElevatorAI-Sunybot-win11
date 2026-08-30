@@ -1,0 +1,109 @@
+.bot-shell {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bot-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bot-mode {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.orbFrame {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle at 30% 20%, rgba(87, 201, 255, 0.45), transparent 55%),
+        radial-gradient(circle at 70% 80%, rgba(43, 210, 182, 0.4), transparent 60%),
+        rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(87, 201, 255, 0.25);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    position: relative;
+    margin: 10px auto 6px;
+}
+
+.orb {
+    width: 105px;
+    height: 105px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 25%, #a7edff 0%, #57c9ff 35%, #2bd2b6 70%, #0b3d3a 100%);
+    box-shadow: 0 0 40px rgba(87, 201, 255, 0.55), inset 0 0 18px rgba(255, 255, 255, 0.35);
+    animation: orbPulse 3.6s ease-in-out infinite;
+}
+
+.bot-shell.listening .orb {
+    animation: orbListening 1.2s ease-in-out infinite;
+    box-shadow: 0 0 50px rgba(87, 201, 255, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.45);
+}
+
+.bot-shell.speaking .orb {
+    animation: orbSpeaking 0.7s ease-in-out infinite;
+    box-shadow: 0 0 60px rgba(43, 210, 182, 0.9), inset 0 0 22px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes orbPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.06);
+    }
+}
+
+@keyframes orbListening {
+
+    0%,
+    100% {
+        transform: scale(1.02);
+    }
+
+    50% {
+        transform: scale(1.12);
+    }
+}
+
+@keyframes orbSpeaking {
+
+    0%,
+    100% {
+        transform: scale(1.08);
+    }
+
+    50% {
+        transform: scale(1.18);
+    }
+}
+
+.sunyTitle {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+}
+
+.state {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 320px;
+    min-height: 38px;
+    text-align: center;
+    margin: 0 auto;
+}
