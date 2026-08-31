@@ -1,25 +1,37 @@
-from typing import Any, Dict, Optional
+import math
+from typing import Any, Dict, Optional, Sequence
 
 from elevator_vision import config
 
 
 def _safe_visible(kpts, idx, conf: Optional[float] = None):
     conf = config.POSE_KEYPOINT_CONF if conf is None else conf
+
     if idx >= len(kpts):
         return None
+
     p = kpts[idx]
-    if len(p) < 3 or p[2] <= conf:
+
+    if len(p) < 3 or float(p[2]) <= conf:
         return None
-    return p
+
+    return (
+        float(p[0]),
+        float(p[1]),
+        float(p[2]),
+    )
 
 
 def _center(*pts):
     pts = [p for p in pts if p is not None]
+
     if not pts:
         return None
+
     x = sum(p[0] for p in pts) / len(pts)
     y = sum(p[1] for p in pts) / len(pts)
     c = sum(p[2] for p in pts) / len(pts)
+
     return (x, y, c)
 
 
@@ -27,158 +39,797 @@ def _ratio(a: float, b: float) -> float:
     return float(a) / float(max(abs(b), 1e-6))
 
 
-def _metrics_from_pose(kpts, bbox) -> Dict[str, Any]:
-    x1, y1, x2, y2 = bbox
-    w = max(1.0, float(x2 - x1))
-    h = max(1.0, float(y2 - y1))
+def _angle_from_vertical(a, b) -> Optional[float]:
+    """
+    Angle of vector AB relative to vertical.
 
-    visible = [p for p in kpts if len(p) >= 3 and p[2] > config.POSE_KEYPOINT_CONF]
+    0 degrees  = perfectly vertical/upright
+    90 degrees = perfectly horizontal
+    """
+
+    if a is None or b is None:
+        return None
+
+    dx = abs(float(b[0]) - float(a[0]))
+    dy = abs(float(b[1]) - float(a[1]))
+
+    if dx < 1e-6 and dy < 1e-6:
+        return None
+
+    return math.degrees(
+        math.atan2(
+            dx,
+            max(dy, 1e-6),
+        )
+    )
+
+
+def _joint_angle(a, b, c) -> Optional[float]:
+    """
+    Calculate angle ABC.
+
+    Mainly used for:
+        hip -> knee -> ankle
+    """
+
+    if a is None or b is None or c is None:
+        return None
+
+    bax = float(a[0]) - float(b[0])
+    bay = float(a[1]) - float(b[1])
+
+    bcx = float(c[0]) - float(b[0])
+    bcy = float(c[1]) - float(b[1])
+
+    na = math.hypot(bax, bay)
+    nc = math.hypot(bcx, bcy)
+
+    if na < 1e-6 or nc < 1e-6:
+        return None
+
+    cos_v = (
+        bax * bcx + bay * bcy
+    ) / (
+        na * nc
+    )
+
+    cos_v = max(
+        -1.0,
+        min(1.0, cos_v),
+    )
+
+    return math.degrees(
+        math.acos(cos_v)
+    )
+
+
+def _mean(
+    values: Sequence[Optional[float]],
+) -> Optional[float]:
+
+    values = [
+        float(v)
+        for v in values
+        if v is not None
+    ]
+
+    if not values:
+        return None
+
+    return sum(values) / len(values)
+
+
+def _metrics_from_pose(
+    kpts,
+    bbox,
+) -> Dict[str, Any]:
+
+    x1, y1, x2, y2 = [
+        float(v)
+        for v in bbox
+    ]
+
+    width = max(
+        1.0,
+        x2 - x1,
+    )
+
+    height = max(
+        1.0,
+        y2 - y1,
+    )
+
+    visible = [
+        (
+            float(p[0]),
+            float(p[1]),
+            float(p[2]),
+        )
+        for p in kpts
+        if len(p) >= 3
+        and float(p[2]) > config.POSE_KEYPOINT_CONF
+    ]
+
     if len(visible) < config.POSTURE_MIN_VISIBLE_KPTS:
-        return {"ok": False, "reason": "too_few_keypoints", "visible_count": len(visible)}
+        return {
+            "ok": False,
+            "reason": "too_few_keypoints",
+            "visible_count": len(visible),
+        }
 
-    ys = [p[1] for p in visible]
-    xs = [p[0] for p in visible]
-    torso_span_ratio = _ratio(max(ys) - min(ys), h)
-    aspect_ratio = _ratio(w, h)
-    visible_x_span_ratio = _ratio(max(xs) - min(xs), w)
+    xs = [
+        p[0]
+        for p in visible
+    ]
 
-    shoulder = _center(_safe_visible(kpts, 5), _safe_visible(kpts, 6))
-    hip = _center(_safe_visible(kpts, 11), _safe_visible(kpts, 12))
-    knee = _center(_safe_visible(kpts, 13), _safe_visible(kpts, 14))
-    ankle = _center(_safe_visible(kpts, 15), _safe_visible(kpts, 16))
+    ys = [
+        p[1]
+        for p in visible
+    ]
 
-    torso_height_ratio = None
-    torso_dx_ratio = None
-    hip_to_knee_ratio = None
-    leg_extension_ratio = None
+    x_span = max(xs) - min(xs)
+    y_span = max(ys) - min(ys)
 
-    if shoulder and hip:
-        torso_height_ratio = _ratio(abs(hip[1] - shoulder[1]), h)
-        torso_dx_ratio = _ratio(abs(hip[0] - shoulder[0]), h)
+    # COCO Pose indexes
+    left_shoulder = _safe_visible(
+        kpts,
+        5,
+    )
 
-    if hip and knee:
-        hip_to_knee_ratio = _ratio(max(knee[1] - hip[1], 0.0), h)
+    right_shoulder = _safe_visible(
+        kpts,
+        6,
+    )
 
-    if knee and ankle:
-        leg_extension_ratio = _ratio(max(ankle[1] - knee[1], 0.0), h)
+    left_hip = _safe_visible(
+        kpts,
+        11,
+    )
+
+    right_hip = _safe_visible(
+        kpts,
+        12,
+    )
+
+    left_knee = _safe_visible(
+        kpts,
+        13,
+    )
+
+    right_knee = _safe_visible(
+        kpts,
+        14,
+    )
+
+    left_ankle = _safe_visible(
+        kpts,
+        15,
+    )
+
+    right_ankle = _safe_visible(
+        kpts,
+        16,
+    )
+
+    shoulder = _center(
+        left_shoulder,
+        right_shoulder,
+    )
+
+    hip = _center(
+        left_hip,
+        right_hip,
+    )
+
+    knee = _center(
+        left_knee,
+        right_knee,
+    )
+
+    ankle = _center(
+        left_ankle,
+        right_ankle,
+    )
+
+    # PRIMARY SIGNAL FOR BODY ORIENTATION
+    torso_angle = _angle_from_vertical(
+        shoulder,
+        hip,
+    )
+
+    hip_knee_angle = _angle_from_vertical(
+        hip,
+        knee,
+    )
+
+    left_knee_angle = _joint_angle(
+        left_hip,
+        left_knee,
+        left_ankle,
+    )
+
+    right_knee_angle = _joint_angle(
+        right_hip,
+        right_knee,
+        right_ankle,
+    )
+
+    knee_angle = _mean(
+        [
+            left_knee_angle,
+            right_knee_angle,
+        ]
+    )
+
+    shoulder_width = None
+
+    if (
+        left_shoulder is not None
+        and right_shoulder is not None
+    ):
+        shoulder_width = math.hypot(
+            left_shoulder[0] - right_shoulder[0],
+            left_shoulder[1] - right_shoulder[1],
+        )
+
+    torso_length = None
+
+    if (
+        shoulder is not None
+        and hip is not None
+    ):
+        torso_length = math.hypot(
+            shoulder[0] - hip[0],
+            shoulder[1] - hip[1],
+        )
+
+    lower_body_visible = (
+        sum(
+            p is not None
+            for p in [
+                left_knee,
+                right_knee,
+                left_ankle,
+                right_ankle,
+            ]
+        )
+        >= 2
+    )
+
+    core_visible = (
+        shoulder is not None
+        and hip is not None
+    )
+
+    cloud_horizontal_ratio = _ratio(
+        x_span,
+        max(y_span, 1.0),
+    )
 
     return {
         "ok": True,
-        "visible_count": len(visible),
-        "aspect_ratio": aspect_ratio,
-        "visible_x_span_ratio": visible_x_span_ratio,
-        "torso_span_ratio": torso_span_ratio,
-        "torso_height_ratio": torso_height_ratio,
-        "torso_dx_ratio": torso_dx_ratio,
-        "hip_to_knee_ratio": hip_to_knee_ratio,
-        "leg_extension_ratio": leg_extension_ratio,
+
+        "visible_count":
+            len(visible),
+
+        "bbox_aspect_ratio":
+            _ratio(
+                width,
+                height,
+            ),
+
+        "visible_x_span_ratio":
+            _ratio(
+                x_span,
+                width,
+            ),
+
+        "visible_y_span_ratio":
+            _ratio(
+                y_span,
+                height,
+            ),
+
+        "cloud_horizontal_ratio":
+            cloud_horizontal_ratio,
+
+        "torso_angle_deg":
+            torso_angle,
+
+        "hip_knee_angle_deg":
+            hip_knee_angle,
+
+        "knee_angle_deg":
+            knee_angle,
+
+        "shoulder_width_ratio":
+            (
+                _ratio(
+                    shoulder_width,
+                    width,
+                )
+                if shoulder_width is not None
+                else None
+            ),
+
+        "torso_length_ratio":
+            (
+                _ratio(
+                    torso_length,
+                    height,
+                )
+                if torso_length is not None
+                else None
+            ),
+
+        "core_visible":
+            core_visible,
+
+        "lower_body_visible":
+            lower_body_visible,
     }
 
 
-def classify_posture(kpts, bbox, return_meta: bool = False):
-    if kpts is None or len(kpts) < 17:
-        meta = {"ok": False, "reason": "missing_pose"}
-        return ("unknown", meta) if return_meta else "unknown"
+def _bounded_conf(
+    base: float,
+    score: float,
+    scale: float = 0.08,
+    high: float = 0.97,
+) -> float:
 
-    meta = _metrics_from_pose(kpts, bbox)
+    return max(
+        0.0,
+        min(
+            high,
+            base
+            + scale
+            * max(
+                score,
+                0.0,
+            ),
+        ),
+    )
+
+
+def classify_posture(
+    kpts,
+    bbox,
+    return_meta: bool = False,
+):
+    """
+    Posture classifier V2.
+
+    Important design:
+
+    lying:
+        primarily determined using torso orientation.
+
+    bounding-box:
+        secondary signal only.
+
+    This prevents an upright person near the camera
+    from being detected as lying simply because
+    legs are outside the image.
+    """
+
+    if (
+        kpts is None
+        or len(kpts) < 17
+    ):
+
+        meta = {
+            "ok": False,
+            "reason": "missing_pose",
+            "posture_confidence": 0.0,
+        }
+
+        return (
+            ("unknown", meta)
+            if return_meta
+            else "unknown"
+        )
+
+    meta = _metrics_from_pose(
+        kpts,
+        bbox,
+    )
+
     if not meta.get("ok"):
-        return ("unknown", meta) if return_meta else "unknown"
 
-    aspect_ratio = float(meta.get("aspect_ratio") or 0.0)
-    visible_x_span_ratio = float(meta.get("visible_x_span_ratio") or 0.0)
-    torso_span_ratio = float(meta.get("torso_span_ratio") or 0.0)
-    torso_height_ratio = float(meta.get("torso_height_ratio") or 0.0)
-    torso_dx_ratio = float(meta.get("torso_dx_ratio") or 0.0)
-    hip_to_knee_ratio = float(meta.get("hip_to_knee_ratio") or 0.0)
-    leg_extension_ratio = float(meta.get("leg_extension_ratio") or 0.0)
+        meta[
+            "posture_confidence"
+        ] = 0.0
 
-    margin = float(getattr(config, "POSTURE_SCORE_MARGIN", 0.28))
-    lying_min = float(getattr(config, "POSTURE_LYING_MIN_SCORE", 2.25))
-    sitting_min = float(getattr(config, "POSTURE_SITTING_MIN_SCORE", 1.85))
-    standing_min = float(getattr(config, "POSTURE_STANDING_MIN_SCORE", 1.85))
-    bending_min = float(getattr(config, "POSTURE_BENDING_MIN_SCORE", 1.55))
+        return (
+            ("unknown", meta)
+            if return_meta
+            else "unknown"
+        )
+
+    bbox_ar = float(
+        meta.get(
+            "bbox_aspect_ratio"
+        )
+        or 0.0
+    )
+
+    cloud_horizontal = float(
+        meta.get(
+            "cloud_horizontal_ratio"
+        )
+        or 0.0
+    )
+
+    torso_angle = meta.get(
+        "torso_angle_deg"
+    )
+
+    hip_knee_angle = meta.get(
+        "hip_knee_angle_deg"
+    )
+
+    knee_angle = meta.get(
+        "knee_angle_deg"
+    )
+
+    core_visible = bool(
+        meta.get(
+            "core_visible"
+        )
+    )
+
+    lower_body_visible = bool(
+        meta.get(
+            "lower_body_visible"
+        )
+    )
+
+    lying_torso_angle = float(
+        getattr(
+            config,
+            "POSTURE_LYING_TORSO_ANGLE_DEG",
+            58.0,
+        )
+    )
+
+    bending_torso_angle = float(
+        getattr(
+            config,
+            "POSTURE_BENDING_TORSO_ANGLE_DEG",
+            28.0,
+        )
+    )
+
+    upright_torso_angle = float(
+        getattr(
+            config,
+            "POSTURE_UPRIGHT_TORSO_ANGLE_DEG",
+            24.0,
+        )
+    )
+
+    lying_ar = float(
+        getattr(
+            config,
+            "POSTURE_LYING_BBOX_AR",
+            1.12,
+        )
+    )
+
+    lying_cloud = float(
+        getattr(
+            config,
+            "POSTURE_LYING_CLOUD_RATIO",
+            1.18,
+        )
+    )
+
+    sitting_knee_max = float(
+        getattr(
+            config,
+            "POSTURE_SITTING_KNEE_MAX_DEG",
+            145.0,
+        )
+    )
+
+    standing_knee_min = float(
+        getattr(
+            config,
+            "POSTURE_STANDING_KNEE_MIN_DEG",
+            150.0,
+        )
+    )
+
+    # ==========================
+    # LYING SCORE
+    # ==========================
 
     lying_score = 0.0
-    if aspect_ratio >= config.POSTURE_HORIZONTAL_AR:
-        lying_score += 1.0
-    if visible_x_span_ratio >= 0.72:
-        lying_score += 0.35
-    if torso_span_ratio <= config.POSTURE_LYING_TORSO_SPAN_RATIO:
-        lying_score += 1.0
-    if torso_height_ratio and torso_height_ratio <= config.POSTURE_LYING_TORSO_HEIGHT_RATIO:
-        lying_score += 0.9
-    if torso_dx_ratio and torso_dx_ratio >= config.POSTURE_MAX_VERTICAL_DX_RATIO:
+    horizontal_votes = 0
+
+    if (
+        torso_angle is not None
+        and torso_angle >= lying_torso_angle
+    ):
+        lying_score += 2.2
+        horizontal_votes += 2
+
+    elif (
+        torso_angle is not None
+        and torso_angle
+        >= lying_torso_angle - 10.0
+    ):
+        lying_score += 0.8
+        horizontal_votes += 1
+
+    if bbox_ar >= lying_ar:
         lying_score += 0.75
-    if leg_extension_ratio and leg_extension_ratio <= config.POSTURE_STANDING_LEG_EXTENSION_RATIO:
-        lying_score += 0.25
+        horizontal_votes += 1
+
+    if (
+        cloud_horizontal
+        >= lying_cloud
+    ):
+        lying_score += 0.75
+        horizontal_votes += 1
+
+    # Important false-positive guard
+    if (
+        torso_angle is not None
+        and torso_angle
+        <= upright_torso_angle
+    ):
+        lying_score -= 2.0
+
+    if bbox_ar < 0.85:
+        lying_score -= 0.45
+
+    # ==========================
+    # SITTING SCORE
+    # ==========================
 
     sitting_score = 0.0
-    if aspect_ratio < config.POSTURE_HORIZONTAL_AR:
+
+    if (
+        torso_angle is not None
+        and torso_angle
+        <= bending_torso_angle + 8.0
+    ):
+        sitting_score += 0.8
+
+    if (
+        knee_angle is not None
+        and 55.0
+        <= knee_angle
+        <= sitting_knee_max
+    ):
+        sitting_score += 1.8
+
+    if (
+        hip_knee_angle is not None
+        and hip_knee_angle >= 35.0
+    ):
         sitting_score += 0.55
-    if torso_height_ratio and torso_height_ratio >= config.POSTURE_LYING_TORSO_HEIGHT_RATIO:
-        sitting_score += 0.6
-    if hip_to_knee_ratio and hip_to_knee_ratio <= config.POSTURE_SITTING_KNEE_LIFT_RATIO:
-        sitting_score += 1.0
-    if leg_extension_ratio and leg_extension_ratio <= config.POSTURE_STANDING_LEG_EXTENSION_RATIO:
-        sitting_score += 0.85
-    if torso_dx_ratio and torso_dx_ratio < config.POSTURE_MAX_VERTICAL_DX_RATIO:
-        sitting_score += 0.2
+
+    if lower_body_visible:
+        sitting_score += 0.25
+
+    if bbox_ar >= lying_ar:
+        sitting_score -= 0.8
+
+    # ==========================
+    # BENDING SCORE
+    # ==========================
 
     bending_score = 0.0
-    if torso_dx_ratio and torso_dx_ratio >= config.POSTURE_BENDING_MIN_DX_RATIO:
-        bending_score += 1.0
-    if torso_height_ratio and torso_height_ratio <= config.POSTURE_BENDING_MAX_HEIGHT_RATIO:
-        bending_score += 0.85
-    if leg_extension_ratio and leg_extension_ratio > config.POSTURE_STANDING_LEG_EXTENSION_RATIO:
-        bending_score += 0.55
-    if aspect_ratio >= 0.9:
+
+    if (
+        torso_angle is not None
+        and bending_torso_angle
+        <= torso_angle
+        < lying_torso_angle
+    ):
+
+        bending_score += (
+            1.2
+            + (
+                torso_angle
+                - bending_torso_angle
+            )
+            / max(
+                lying_torso_angle
+                - bending_torso_angle,
+                1.0,
+            )
+        )
+
+    if (
+        knee_angle is not None
+        and knee_angle
+        >= standing_knee_min
+    ):
         bending_score += 0.35
 
-    standing_score = 0.0
-    if aspect_ratio < config.POSTURE_HORIZONTAL_AR:
-        standing_score += 0.6
-    if torso_height_ratio and torso_height_ratio > config.POSTURE_LYING_TORSO_HEIGHT_RATIO:
-        standing_score += 0.9
-    if torso_dx_ratio and torso_dx_ratio < config.POSTURE_MAX_VERTICAL_DX_RATIO:
-        standing_score += 0.65
-    if leg_extension_ratio and leg_extension_ratio > config.POSTURE_STANDING_LEG_EXTENSION_RATIO:
-        standing_score += 1.0
+    if bbox_ar >= lying_ar:
+        bending_score -= 0.4
 
-    # Penalize standing when the torso is clearly folded forward
-    if torso_dx_ratio and torso_dx_ratio >= config.POSTURE_BENDING_MIN_DX_RATIO:
-        standing_score -= 0.75
-    if torso_height_ratio and torso_height_ratio <= config.POSTURE_BENDING_MAX_HEIGHT_RATIO:
+    # ==========================
+    # STANDING SCORE
+    # ==========================
+
+    standing_score = 0.0
+
+    if (
+        torso_angle is not None
+        and torso_angle
+        <= upright_torso_angle
+    ):
+        standing_score += 2.0
+
+    elif (
+        torso_angle is not None
+        and torso_angle
+        <= bending_torso_angle
+    ):
+        standing_score += 1.25
+
+    if (
+        knee_angle is not None
+        and knee_angle
+        >= standing_knee_min
+    ):
+        standing_score += 1.2
+
+    elif (
+        not lower_body_visible
+        and core_visible
+    ):
+        # Camera close-up:
+        # conservative upright classification.
+        standing_score += 0.75
+
+    if bbox_ar < 0.9:
+        standing_score += 0.35
+
+    if (
+        cloud_horizontal
+        >= lying_cloud
+    ):
         standing_score -= 0.35
 
     posture = "unknown"
-    posture_conf = 0.45
+    posture_conf = 0.0
 
-    if lying_score >= lying_min and lying_score >= sitting_score + margin and lying_score >= standing_score + margin:
+    strong_horizontal_torso = (
+        torso_angle is not None
+        and torso_angle
+        >= lying_torso_angle
+    )
+
+    # ==========================
+    # FINAL CLASSIFICATION
+    # ==========================
+
+    if (
+        lying_score >= 2.0
+        and (
+            horizontal_votes >= 2
+            or strong_horizontal_torso
+        )
+    ):
+
         posture = "lying"
-        posture_conf = min(0.98, 0.54 + 0.11 * lying_score)
-    elif bending_score >= bending_min and bending_score >= standing_score + 0.12 and lying_score < lying_min:
-        posture = "bending"
-        posture_conf = min(0.94, 0.50 + 0.11 * bending_score)
-    elif sitting_score >= sitting_min and sitting_score >= standing_score + 0.12 and sitting_score >= lying_score - 0.08:
+
+        posture_conf = _bounded_conf(
+            0.60,
+            lying_score,
+            0.09,
+        )
+
+    elif (
+        sitting_score >= 2.25
+        and sitting_score
+        >= standing_score + 0.35
+    ):
+
         posture = "sitting"
-        posture_conf = min(0.95, 0.52 + 0.10 * sitting_score)
-    elif standing_score >= standing_min:
+
+        posture_conf = _bounded_conf(
+            0.58,
+            sitting_score,
+            0.08,
+            0.94,
+        )
+
+    elif (
+        bending_score >= 1.45
+        and bending_score
+        >= standing_score + 0.15
+    ):
+
+        posture = "bending"
+
+        posture_conf = _bounded_conf(
+            0.56,
+            bending_score,
+            0.09,
+            0.93,
+        )
+
+    elif standing_score >= 1.65:
+
         posture = "standing"
-        posture_conf = min(0.96, 0.54 + 0.10 * standing_score)
+
+        posture_conf = _bounded_conf(
+            0.58,
+            standing_score,
+            0.08,
+            0.95,
+        )
 
     meta.update(
         {
-            "lying_score": round(lying_score, 3),
-            "sitting_score": round(sitting_score, 3),
-            "standing_score": round(standing_score, 3),
-            "bending_score": round(bending_score, 3),
-            "posture_confidence": round(posture_conf, 3),
-            "posture": posture,
+            "lying_score":
+                round(
+                    lying_score,
+                    3,
+                ),
+
+            "sitting_score":
+                round(
+                    sitting_score,
+                    3,
+                ),
+
+            "standing_score":
+                round(
+                    standing_score,
+                    3,
+                ),
+
+            "bending_score":
+                round(
+                    bending_score,
+                    3,
+                ),
+
+            "horizontal_votes":
+                int(
+                    horizontal_votes
+                ),
+
+            "posture_confidence":
+                round(
+                    posture_conf,
+                    3,
+                ),
+
+            "posture":
+                posture,
+
+            "classifier_version":
+                "v2-torso-angle",
         }
     )
 
-    return (posture, meta) if return_meta else posture
+    return (
+        (posture, meta)
+        if return_meta
+        else posture
+    )
 
 
-def is_fall_transition(prev_posture, curr_posture):
-    return prev_posture in {"standing", "sitting", "bending"} and curr_posture == "lying"
+def is_fall_transition(
+    prev_posture,
+    curr_posture,
+):
+    return (
+        prev_posture
+        in {
+            "standing",
+            "sitting",
+            "bending",
+        }
+        and curr_posture
+        == "lying"
+    )
