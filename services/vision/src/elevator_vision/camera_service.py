@@ -188,9 +188,11 @@ class CameraService:
             return max(1, config.SITTING_CONFIRM_FRAMES)
         if posture == "bending":
             return max(1, config.BENDING_CONFIRM_FRAMES)
+        if posture == "standing":
+            return max(1, config.STANDING_CONFIRM_FRAMES)
         if posture == "unknown":
-            return max(1, config.POSTURE_CONFIRM_UNKNOWN_FRAMES)
-        return 1
+            return max(1, config.POSTURE_RESET_UNKNOWN_FRAMES)
+        return 2
 
     def _decay_counter(self, value: int, step: int) -> int:
         return max(0, int(value) - max(1, int(step)))
@@ -310,15 +312,25 @@ class CameraService:
                 track_assignments = self.tracker.update([d["bbox"] for d in last_person_dets])
                 bottle_assignments = self.bottle_tracker.update([d["bbox"] for d in last_bottle_dets])
 
+                # One-to-one greedy pose/track association. The previous loop could
+                # assign multiple pose detections to the same track and overwrite the
+                # first match, which makes posture unstable when people are close.
                 pose_by_track = {}
-                for pose in last_poses:
-                    best_tid, best_iou = None, 0.0
+                pose_candidates = []
+                for pose_idx, pose in enumerate(last_poses):
                     for tid, tb in track_assignments:
                         score = iou_xyxy(pose["bbox"], tb)
-                        if score > best_iou:
-                            best_tid, best_iou = tid, score
-                    if best_tid is not None and best_iou >= config.POSE_TRACK_MATCH_IOU:
-                        pose_by_track[best_tid] = pose
+                        if score >= config.POSE_TRACK_MATCH_IOU:
+                            pose_candidates.append((score, pose_idx, tid))
+                pose_candidates.sort(reverse=True, key=lambda item: item[0])
+                used_pose_indices = set()
+                used_track_ids = set()
+                for _, pose_idx, tid in pose_candidates:
+                    if pose_idx in used_pose_indices or tid in used_track_ids:
+                        continue
+                    pose_by_track[tid] = last_poses[pose_idx]
+                    used_pose_indices.add(pose_idx)
+                    used_track_ids.add(tid)
 
                 people_count = len(track_assignments)
                 unknown_count = 0
@@ -345,6 +357,7 @@ class CameraService:
                         tid,
                         {
                             "posture": "unknown",
+                            "posture_confidence": 0.0,
                             "posture_candidate": "unknown",
                             "candidate_streak": 0,
                             "last_upright_ts": now_ts,
@@ -380,10 +393,16 @@ class CameraService:
                         state["candidate_streak"] = 1
 
                     confirmed_posture = state["posture"]
+                    candidate_conf = float(posture_meta.get("posture_confidence") or 0.0)
                     if candidate_posture != "unknown" and state["candidate_streak"] >= self._posture_confirm_frames(candidate_posture):
                         confirmed_posture = candidate_posture
+                        state["posture_confidence"] = candidate_conf
                     elif candidate_posture == "unknown" and state["candidate_streak"] >= self._posture_confirm_frames("unknown"):
-                        confirmed_posture = state["posture"]
+                        # The previous implementation retained a stale posture forever
+                        # when pose temporarily became unknown. That could leave an
+                        # upright person labelled "lying" long after the bad frame.
+                        confirmed_posture = "unknown"
+                        state["posture_confidence"] = 0.0
 
                     state["posture"] = confirmed_posture
                     state["posture_meta"] = posture_meta
@@ -425,7 +444,9 @@ class CameraService:
                         state["lying_started_ts"] = now_ts
 
                     is_danger = False
-                    posture_conf = float(posture_meta.get("posture_confidence") or 0.0)
+                    # Confidence must belong to the confirmed temporal state, not
+                    # to the latest transient candidate.
+                    posture_conf = float(state.get("posture_confidence") or 0.0)
                     lying_duration = 0.0
                     if confirmed_posture == "lying" and state.get("lying_started_ts", 0.0) > 0.0:
                         lying_duration = max(0.0, now_ts - state["lying_started_ts"])
@@ -461,8 +482,15 @@ class CameraService:
                                 extra=event_extra,
                             )
 
+                    current_pose_supports_lying = bool(
+                        candidate_posture == "lying"
+                        and posture_meta.get("ok")
+                        and float(posture_meta.get("posture_confidence") or 0.0) >= config.FALL_POSTURE_CONF_MIN
+                    )
+
                     fall_candidate = (
                         confirmed_posture == "lying"
+                        and current_pose_supports_lying
                         and posture_conf >= config.FALL_POSTURE_CONF_MIN
                         and lying_duration >= config.FALL_MIN_LYING_SEC
                         and state.get("last_non_lying_posture") in {"standing", "sitting", "bending"}
