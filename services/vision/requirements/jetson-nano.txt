@@ -1,0 +1,6 @@
+# JetPack 4.x / Python 3.6 legacy-compatible user-space packages.
+fastapi==0.79.0
+uvicorn==0.16.0
+numpy==1.19.5
+psycopg2-binary==2.9.5
+# OpenCV, TensorRT, CUDA and PyCUDA should come from JetPack/system packages.

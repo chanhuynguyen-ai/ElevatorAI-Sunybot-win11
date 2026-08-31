@@ -1,0 +1,7 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+  gateway:
+    environment:
+      VISION_SERVICE_URL: http://host.docker.internal:8010

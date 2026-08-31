@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "elevatorai-vision"
+version = "1.0.0"
+description = "Computer vision service for ElevatorAI"
+requires-python = ">=3.9"
+dependencies = [
+  "fastapi>=0.100,<1",
+  "uvicorn>=0.23,<1",
+  "numpy>=1.24,<3",
+  "opencv-python>=4.8,<5",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
